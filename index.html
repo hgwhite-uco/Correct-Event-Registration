@@ -45,17 +45,43 @@
 
 <script>
     function openOutlookWeb() {
-    const subject = encodeURIComponent(document.getElementById('subject').value);
+    const subject = document.getElementById('subject').value;
     const startInput = document.getElementById('startTime').value;
     const duration = parseInt(document.getElementById('duration').value);
 
-    const startDate = new Date(startInput).toISOString();
-    const endDate = new Date(new Date(startInput).getTime() + duration * 60000).toISOString();
+    if (!subject || !startInput) {
+        alert("Please fill in the Event Name and Start Time.");
+        return;
+    }
 
-    // Outlook Web Deep Link format
-    const outlookUrl = `https://outlook.office.com/calendar/0/deeplink/compose?subject=${subject}&startdt=${startDate}&enddt=${endDate}&path=/calendar/action/compose&rru=addevent`;
+    // 1. Format Dates specifically for Outlook Web URLs
+    // Outlook prefers: YYYY-MM-DDTHH:mm:ss
+    const startDateObj = new Date(startInput);
+    const endDateObj = new Date(startDateObj.getTime() + duration * 60000);
 
-    window.open(outlookUrl, '_blank');
+    const formatForOutlook = (date) => {
+        return date.toISOString().split('.')[0]; // Removes the milliseconds and 'Z'
+    };
+
+    const startStr = formatForOutlook(startDateObj);
+    const endStr = formatForOutlook(endDateObj);
+
+    // 2. Construct the deep link
+    // rru=addevent triggers the 'New Event' pop-up automatically
+    const baseUrl = "https://outlook.office.com/calendar/0/deeplink/compose";
+    const params = new URLSearchParams({
+        path: "/calendar/action/compose",
+        rru: "addevent",
+        subject: subject,
+        startdt: startStr,
+        enddt: endStr,
+        body: "Scheduled via Web Scheduler"
+    });
+
+    const finalUrl = `${baseUrl}?${params.toString()}`;
+
+    // 3. Open in a new tab
+    window.open(finalUrl, '_blank');
 }
 </script>
 
