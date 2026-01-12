@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Outlook Event Scheduler</title>
+    <style>
+        :root { --primary: #0078d4; --bg: #f3f2f1; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); padding: 40px; color: #323130; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h2 { color: var(--primary); margin-top: 0; }
+        .input-group { margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px; }
+        label { font-weight: 600; font-size: 0.9rem; }
+        input { padding: 12px; border: 1px solid #8a8886; border-radius: 4px; font-size: 1rem; }
+        button { 
+            background: var(--primary); color: white; border: none; padding: 12px; 
+            border-radius: 4px; font-weight: 600; cursor: pointer; transition: background 0.2s;
+            width: 100%; font-size: 1rem;
+        }
+        button:hover { background: #005a9e; }
+        .footer-note { font-size: 0.8rem; color: #605e5c; margin-top: 20px; text-align: center; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>📅 Schedule to Outlook</h2>
+    <p>Enter details to generate an Outlook calendar invite file.</p>
+    
+    <div class="input-group">
+        <label>Event Name</label>
+        <input type="text" id="subject" placeholder="e.g., Project Review">
+        
+        <label>Start Date & Time</label>
+        <input type="datetime-local" id="startTime">
+        
+        <label>Duration (Minutes)</label>
+        <input type="number" id="duration" value="60">
+    </div>
+
+    <button onclick="downloadOutlookInvite()">Download Outlook File</button>
+
+    <p class="footer-note">Upload this file to GitHub Pages to share your scheduler.</p>
+</div>
+
+<script>
+    function downloadOutlookInvite() {
+        const subject = document.getElementById('subject').value;
+        const startInput = document.getElementById('startTime').value;
+        const duration = parseInt(document.getElementById('duration').value);
+
+        if (!subject || !startInput) {
+            alert("Please fill in the Event Name and Start Time.");
+            return;
+        }
+
+        const startDate = new Date(startInput);
+        const endDate = new Date(startDate.getTime() + duration * 60000);
+
+        const formatICSDate = (date) => {
+            return date.toISOString().replace(/-|:|\.\d+/g, "");
+        };
+
+        const uid = Date.now() + "@scheduler.com";
+        
+        // Formatted without the VALARM (reminder) block
+        const icsContent = [
+            "BEGIN:VCALENDAR",
+            "VERSION:2.0",
+            "PRODID:-//Microsoft Outlook Scheduler//EN",
+            "BEGIN:VEVENT",
+            `UID:${uid}`,
+            `DTSTAMP:${formatICSDate(new Date())}`,
+            `DTSTART:${formatICSDate(startDate)}`,
+            `DTEND:${formatICSDate(endDate)}`,
+            `SUMMARY:${subject}`,
+            "DESCRIPTION:Scheduled via your custom web tool.",
+            "END:VEVENT",
+            "END:VCALENDAR"
+        ].join("\n");
+
+        const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+        const link = document.createElement('a');
+        link.href = window.URL.createObjectURL(blob);
+        link.setAttribute('download', `${subject.replace(/\s+/g, '_')}.ics`);
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+</script>
+
+</body>
+</html>
