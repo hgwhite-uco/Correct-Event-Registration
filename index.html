@@ -24,7 +24,7 @@
 <body>
 
 <div class="container">
-    <h2>📅 Schedule to Outlook</h2>
+    <h2> Schedule to Outlook</h2>
     <p>Enter details to generate an Outlook calendar invite file.</p>
     
     <div class="input-group">
@@ -44,50 +44,19 @@
 </div>
 
 <script>
-    function downloadOutlookInvite() {
-        const subject = document.getElementById('subject').value;
-        const startInput = document.getElementById('startTime').value;
-        const duration = parseInt(document.getElementById('duration').value);
+    function openOutlookWeb() {
+    const subject = encodeURIComponent(document.getElementById('subject').value);
+    const startInput = document.getElementById('startTime').value;
+    const duration = parseInt(document.getElementById('duration').value);
 
-        if (!subject || !startInput) {
-            alert("Please fill in the Event Name and Start Time.");
-            return;
-        }
+    const startDate = new Date(startInput).toISOString();
+    const endDate = new Date(new Date(startInput).getTime() + duration * 60000).toISOString();
 
-        const startDate = new Date(startInput);
-        const endDate = new Date(startDate.getTime() + duration * 60000);
+    // Outlook Web Deep Link format
+    const outlookUrl = `https://outlook.office.com/calendar/0/deeplink/compose?subject=${subject}&startdt=${startDate}&enddt=${endDate}&path=/calendar/action/compose&rru=addevent`;
 
-        const formatICSDate = (date) => {
-            return date.toISOString().replace(/-|:|\.\d+/g, "");
-        };
-
-        const uid = Date.now() + "@scheduler.com";
-        
-        // Formatted without the VALARM (reminder) block
-        const icsContent = [
-            "BEGIN:VCALENDAR",
-            "VERSION:2.0",
-            "PRODID:-//Microsoft Outlook Scheduler//EN",
-            "BEGIN:VEVENT",
-            `UID:${uid}`,
-            `DTSTAMP:${formatICSDate(new Date())}`,
-            `DTSTART:${formatICSDate(startDate)}`,
-            `DTEND:${formatICSDate(endDate)}`,
-            `SUMMARY:${subject}`,
-            "DESCRIPTION:Scheduled via your custom web tool.",
-            "END:VEVENT",
-            "END:VCALENDAR"
-        ].join("\n");
-
-        const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-        const link = document.createElement('a');
-        link.href = window.URL.createObjectURL(blob);
-        link.setAttribute('download', `${subject.replace(/\s+/g, '_')}.ics`);
-        
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
+    window.open(outlookUrl, '_blank');
+}
 </script>
 
 </body>
