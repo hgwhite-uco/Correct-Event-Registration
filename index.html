@@ -1,45 +1,67 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <script src="https://unpkg.com/@microsoft/mgt@3/dist/bundle/mgt.loader.js"></script>
+    <meta charset="UTF-8">
+    <title>Outlook Event Creator</title>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; padding: 50px; background: #f4f4f9; }
+        .card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 350px; }
+        input, button { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        button { background: #0078d4; color: white; border: none; cursor: pointer; font-weight: bold; }
+        button:hover { background: #005a9e; }
+    </style>
 </head>
 <body>
-    <mgt-msal2-provider client-id="YOUR_AZURE_CLIENT_ID"></mgt-msal2-provider>
-    <mgt-login></mgt-login>
 
-    <div id="event-form">
-        <input type="text" id="title" placeholder="Event Title">
-        <input type="date" id="date">
-        <input type="time" id="time">
-        <input type="number" id="duration" placeholder="Duration (mins)">
-        <button onclick="createEvent()">Create Event</button>
-    </div>
+<div class="card">
+    <h2>Create Event</h2>
+    <label>Event Title</label>
+    <input type="text" id="title" placeholder="e.g. Brainstorming Session">
+    
+    <label>Date</label>
+    <input type="date" id="date">
+    
+    <label>Start Time</label>
+    <input type="time" id="time">
+    
+    <label>Duration (minutes)</label>
+    <input type="number" id="duration" value="30">
+    
+    <button onclick="generateOutlookLink()">Open in Outlook</button>
+</div>
 
-    <script>
-        async function createEvent() {
-            const title = document.getElementById('title').value;
-            const date = document.getElementById('date').value;
-            const time = document.getElementById('time').value;
-            const duration = parseInt(document.getElementById('duration').value);
+<script>
+    function generateOutlookLink() {
+        const title = encodeURIComponent(document.getElementById('title').value);
+        const date = document.getElementById('date').value;
+        const time = document.getElementById('time').value;
+        const duration = parseInt(document.getElementById('duration').value);
 
-            const start = new Date(`${date}T${time}`);
-            const end = new Date(start.getTime() + duration * 60000);
-
-            const event = {
-                subject: title,
-                start: { dateTime: start.toISOString(), timeZone: 'UTC' },
-                end: { dateTime: end.toISOString(), timeZone: 'UTC' }
-            };
-
-            try {
-                // MSAL provider handles the token automatically
-                await mgt.Providers.globalProvider.graph.api('/me/events').post(event);
-                alert("Event Created!");
-            } catch (err) {
-                console.error(err);
-                alert("Error creating event");
-            }
+        if (!date || !time || !title) {
+            alert("Please fill in all fields");
+            return;
         }
-    </script>
+
+        // 1. Calculate Start Time
+        const start = new Date(`${date}T${time}`);
+        
+        // 2. Calculate End Time based on duration
+        const end = new Date(start.getTime() + duration * 60000);
+
+        // 3. Format dates to ISO string (YYYY-MM-DDTHH:mm:ss)
+        // We remove the milliseconds and 'Z' to keep it simple for the deep link
+        const formatForOutlook = (dt) => dt.toISOString().split('.')[0];
+
+        const startStr = formatForOutlook(start);
+        const endStr = formatForOutlook(end);
+
+        // 4. Construct the Deep Link
+        const outlookUrl = `https://outlook.office.com/calendar/deeplink/compose?subject=${title}&startdt=${startStr}&enddt=${endStr}&path=/calendar/action/compose&rru=addevent`;
+
+        // 5. Open in new tab
+        window.open(outlookUrl, '_blank');
+    }
+</script>
+
 </body>
 </html>
