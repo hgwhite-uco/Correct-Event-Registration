@@ -5,17 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Outlook Event Generator</title>
     <style>
-        :root { --ms-blue: #0078d4; --ms-dark: #005a9e; }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: #f3f2f1; display: flex; justify-content: center; padding: 20px; }
-        .container { background: white; padding: 30px; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 100%; max-width: 450px; }
-        h2 { color: var(--ms-blue); margin-top: 0; border-bottom: 2px solid #f3f2f1; padding-bottom: 10px; }
+        :root { --ms-blue: #0078d4; --ms-dark: #005a9e; --bg: #f3f2f1; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: var(--bg); display: flex; justify-content: center; padding: 20px; }
+        .container { background: white; padding: 30px; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 100%; max-width: 500px; }
+        h2 { color: var(--ms-blue); margin-top: 0; border-bottom: 2px solid #f3f2f1; padding-bottom: 10px; text-align: center; }
         .form-group { margin-bottom: 15px; }
-        label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.9rem; color: #323130; }
-        input { width: 100%; padding: 10px; border: 1px solid #8a8886; border-radius: 2px; box-sizing: border-box; }
-        input:focus { border-color: var(--ms-blue); outline: none; }
+        label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.85rem; color: #323130; }
+        input, textarea { width: 100%; padding: 10px; border: 1px solid #8a8886; border-radius: 2px; box-sizing: border-box; font-family: inherit; }
+        textarea { resize: vertical; min-height: 80px; }
+        input:focus, textarea:focus { border-color: var(--ms-blue); outline: none; }
         .row { display: flex; gap: 15px; }
         .row > div { flex: 1; }
-        button { width: 100%; background: var(--ms-blue); color: white; border: none; padding: 12px; font-weight: 600; cursor: pointer; border-radius: 2px; margin-top: 10px; font-size: 1rem; }
+        button { width: 100%; background: var(--ms-blue); color: white; border: none; padding: 14px; font-weight: 600; cursor: pointer; border-radius: 2px; margin-top: 10px; font-size: 1rem; }
         button:hover { background: var(--ms-dark); }
         .hint { font-size: 0.75rem; color: #605e5c; margin-top: 4px; }
     </style>
@@ -26,85 +27,79 @@
     <h2>Outlook Event Creator</h2>
     
     <div class="form-group">
-        <label for="title">Event Title</label>
-        <input type="text" id="title" placeholder="e.g., Weekly Sync">
+        <label>Event Title</label>
+        <input type="text" id="title" placeholder="e.g., Project Kickoff">
     </div>
 
     <div class="form-group">
-        <label for="location">Location</label>
-        <input type="text" id="location" placeholder="e.g., Microsoft Teams, Room 402, or Address">
+        <label>Location</label>
+        <input type="text" id="location" placeholder="e.g., Microsoft Teams">
     </div>
 
     <div class="form-group">
-        <label for="attendees">Attendees (Emails)</label>
-        <input type="text" id="attendees" placeholder="alex@company.com, jordan@test.com">
+        <label>Attendees (Emails)</label>
+        <input type="text" id="attendees" placeholder="colleague@work.com">
         <div class="hint">Separate with commas</div>
     </div>
 
     <div class="row">
         <div class="form-group">
-            <label for="date">Date</label>
+            <label>Date</label>
             <input type="date" id="date">
         </div>
         <div class="form-group">
-            <label for="time">Start Time</label>
+            <label>Start Time</label>
             <input type="time" id="time">
         </div>
     </div>
 
     <div class="form-group">
-        <label for="duration">Duration (minutes)</label>
-        <input type="number" id="duration" value="30" min="5" step="5">
+        <label>Duration (minutes)</label>
+        <input type="number" id="duration" value="60" min="5">
     </div>
 
-    <button onclick="createOutlookEvent()">Create Event in Outlook</button>
+    <div class="form-group">
+        <label>Notes / Agenda</label>
+        <textarea id="body" placeholder="Meeting details..."></textarea>
+    </div>
+
+    <button onclick="createOutlookEvent()">Open in Outlook</button>
 </div>
 
 <script>
-    <script>
     function createOutlookEvent() {
-        // Collect data
         const title = encodeURIComponent(document.getElementById('title').value);
         const location = encodeURIComponent(document.getElementById('location').value);
         const attendees = encodeURIComponent(document.getElementById('attendees').value.replace(/\s/g, ''));
         const notes = encodeURIComponent(document.getElementById('body').value);
-        const date = document.getElementById('date').value;
-        const time = document.getElementById('time').value;
+        const dateInput = document.getElementById('date').value;
+        const timeInput = document.getElementById('time').value;
         const duration = parseInt(document.getElementById('duration').value);
 
-        // Validation
-        if (!date || !time || !title) {
+        if (!dateInput || !timeInput || !title) {
             alert("Title, Date, and Time are required.");
             return;
         }
 
-        // 1. Create a date object from the user's input (this is in local time)
-        const start = new Date(`${date}T${time}`);
-        
-        // 2. Calculate end time
+        // Create date object from local input
+        const start = new Date(`${dateInput}T${timeInput}`);
         const end = new Date(start.getTime() + duration * 60000);
 
-        /**
-         * FIX: Format date for Outlook without shifting to UTC.
-         * We need: YYYY-MM-DDTHH:mm:ss
-         */
-        const formatToLocalISO = (dateObj) => {
-            const pad = (num) => String(num).padStart(2, '0');
-            
-            const year = dateObj.getFullYear();
-            const month = pad(dateObj.getMonth() + 1);
-            const day = pad(dateObj.getDate());
-            const hours = pad(dateObj.getHours());
-            const minutes = pad(dateObj.getMinutes());
-            const seconds = pad(dateObj.getSeconds());
-
-            return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+        // Function to format date to YYYY-MM-DDTHH:mm:ss without UTC shift
+        const formatLocal = (dateObj) => {
+            const pad = (n) => n.toString().padStart(2, '0');
+            const y = dateObj.getFullYear();
+            const m = pad(dateObj.getMonth() + 1);
+            const d = pad(dateObj.getDate());
+            const h = pad(dateObj.getHours());
+            const min = pad(dateObj.getMinutes());
+            const s = pad(dateObj.getSeconds());
+            return `${y}-${m}-${d}T${h}:${min}:${s}`;
         };
 
-        const startStr = formatToLocalISO(start);
-        const endStr = formatToLocalISO(end);
+        const startStr = formatLocal(start);
+        const endStr = formatLocal(end);
 
-        // 3. Construct Deep Link
         const url = `https://outlook.office.com/calendar/deeplink/compose` +
                     `?subject=${title}` +
                     `&location=${location}` +
@@ -114,10 +109,8 @@
                     `&enddt=${endStr}` +
                     `&path=/calendar/action/compose&rru=addevent`;
 
-        // Open Outlook Web
         window.open(url, '_blank');
     }
-</script>
 </script>
 
 </body>
