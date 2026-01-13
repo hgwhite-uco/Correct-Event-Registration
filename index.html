@@ -61,37 +61,63 @@
 </div>
 
 <script>
+    <script>
     function createOutlookEvent() {
+        // Collect data
         const title = encodeURIComponent(document.getElementById('title').value);
         const location = encodeURIComponent(document.getElementById('location').value);
         const attendees = encodeURIComponent(document.getElementById('attendees').value.replace(/\s/g, ''));
+        const notes = encodeURIComponent(document.getElementById('body').value);
         const date = document.getElementById('date').value;
         const time = document.getElementById('time').value;
         const duration = parseInt(document.getElementById('duration').value);
 
+        // Validation
         if (!date || !time || !title) {
             alert("Title, Date, and Time are required.");
             return;
         }
 
-        // Calculate Times
+        // 1. Create a date object from the user's input (this is in local time)
         const start = new Date(`${date}T${time}`);
+        
+        // 2. Calculate end time
         const end = new Date(start.getTime() + duration * 60000);
 
-        // Format ISO string and remove milliseconds/Z (YYYY-MM-DDTHH:mm:ss)
-        const formatForLink = (dt) => dt.toISOString().split('.')[0];
+        /**
+         * FIX: Format date for Outlook without shifting to UTC.
+         * We need: YYYY-MM-DDTHH:mm:ss
+         */
+        const formatToLocalISO = (dateObj) => {
+            const pad = (num) => String(num).padStart(2, '0');
+            
+            const year = dateObj.getFullYear();
+            const month = pad(dateObj.getMonth() + 1);
+            const day = pad(dateObj.getDate());
+            const hours = pad(dateObj.getHours());
+            const minutes = pad(dateObj.getMinutes());
+            const seconds = pad(dateObj.getSeconds());
 
-        // Build the deep link
+            return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+        };
+
+        const startStr = formatToLocalISO(start);
+        const endStr = formatToLocalISO(end);
+
+        // 3. Construct Deep Link
         const url = `https://outlook.office.com/calendar/deeplink/compose` +
                     `?subject=${title}` +
                     `&location=${location}` +
                     `&to=${attendees}` +
-                    `&startdt=${formatForLink(start)}` +
-                    `&enddt=${formatForLink(end)}` +
+                    `&body=${notes}` +
+                    `&startdt=${startStr}` +
+                    `&enddt=${endStr}` +
                     `&path=/calendar/action/compose&rru=addevent`;
 
+        // Open Outlook Web
         window.open(url, '_blank');
     }
+</script>
 </script>
 
 </body>
