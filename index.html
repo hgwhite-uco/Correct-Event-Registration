@@ -2,64 +2,106 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Outlook Event Creator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Outlook Event Generator</title>
     <style>
-        body { font-family: sans-serif; display: flex; justify-content: center; padding: 50px; background: #f4f4f9; }
-        .card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 350px; }
-        input, button { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
-        button { background: #0078d4; color: white; border: none; cursor: pointer; font-weight: bold; }
-        button:hover { background: #005a9e; }
+        :root { --ms-blue: #0078d4; --ms-dark: #005a9e; --bg: #f3f2f1; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: var(--bg); display: flex; justify-content: center; padding: 20px; }
+        .container { background: white; padding: 30px; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 100%; max-width: 500px; }
+        h2 { color: var(--ms-blue); margin-top: 0; border-bottom: 2px solid #f3f2f1; padding-bottom: 10px; text-align: center; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.85rem; color: #323130; }
+        input, textarea { width: 100%; padding: 10px; border: 1px solid #8a8886; border-radius: 2px; box-sizing: border-box; font-family: inherit; }
+        textarea { resize: vertical; min-height: 80px; }
+        input:focus, textarea:focus { border-color: var(--ms-blue); outline: none; }
+        .row { display: flex; gap: 15px; }
+        .row > div { flex: 1; }
+        button { width: 100%; background: var(--ms-blue); color: white; border: none; padding: 14px; font-weight: 600; cursor: pointer; border-radius: 2px; margin-top: 10px; font-size: 1rem; }
+        button:hover { background: var(--ms-dark); }
+        .hint { font-size: 0.75rem; color: #605e5c; margin-top: 4px; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h2>Create Event</h2>
-    <label>Event Title</label>
-    <input type="text" id="title" placeholder="e.g. Brainstorming Session">
+<div class="container">
+    <h2>Outlook Event Creator</h2>
     
-    <label>Date</label>
-    <input type="date" id="date">
-    
-    <label>Start Time</label>
-    <input type="time" id="time">
-    
-    <label>Duration (minutes)</label>
-    <input type="number" id="duration" value="30">
-    
-    <button onclick="generateOutlookLink()">Open in Outlook</button>
+    <div class="form-group">
+        <label>Event Title</label>
+        <input type="text" id="title" placeholder="e.g., Project Kickoff">
+    </div>
+
+    <div class="form-group">
+        <label>Location</label>
+        <input type="text" id="location" placeholder="e.g., Microsoft Teams or Conference Room A">
+    </div>
+
+    <div class="form-group">
+        <label>Attendees (Emails)</label>
+        <input type="text" id="attendees" placeholder="colleague@work.com, client@test.com">
+        <div class="hint">Separate with commas</div>
+    </div>
+
+    <div class="row">
+        <div class="form-group">
+            <label>Date</label>
+            <input type="date" id="date">
+        </div>
+        <div class="form-group">
+            <label>Start Time</label>
+            <input type="time" id="time">
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>Duration (minutes)</label>
+        <input type="number" id="duration" value="60" min="5" step="5">
+    </div>
+
+    <div class="form-group">
+        <label>Notes / Agenda</label>
+        <textarea id="body" placeholder="Enter meeting agenda or details here..."></textarea>
+    </div>
+
+    <button onclick="createOutlookEvent()">Open in Outlook</button>
 </div>
 
 <script>
-    function generateOutlookLink() {
+    function createOutlookEvent() {
+        // Collect data
         const title = encodeURIComponent(document.getElementById('title').value);
+        const location = encodeURIComponent(document.getElementById('location').value);
+        const attendees = encodeURIComponent(document.getElementById('attendees').value.replace(/\s/g, ''));
+        const notes = encodeURIComponent(document.getElementById('body').value);
         const date = document.getElementById('date').value;
         const time = document.getElementById('time').value;
         const duration = parseInt(document.getElementById('duration').value);
 
+        // Validation
         if (!date || !time || !title) {
-            alert("Please fill in all fields");
+            alert("Title, Date, and Time are required.");
             return;
         }
 
-        // 1. Calculate Start Time
+        // Time Calculations
         const start = new Date(`${date}T${time}`);
-        
-        // 2. Calculate End Time based on duration
         const end = new Date(start.getTime() + duration * 60000);
 
-        // 3. Format dates to ISO string (YYYY-MM-DDTHH:mm:ss)
-        // We remove the milliseconds and 'Z' to keep it simple for the deep link
-        const formatForOutlook = (dt) => dt.toISOString().split('.')[0];
+        // Formatting for Outlook URL (YYYY-MM-DDTHH:mm:ss)
+        const formatForLink = (dt) => dt.toISOString().split('.')[0];
 
-        const startStr = formatForOutlook(start);
-        const endStr = formatForOutlook(end);
+        // Construct Deep Link
+        const url = `https://outlook.office.com/calendar/deeplink/compose` +
+                    `?subject=${title}` +
+                    `&location=${location}` +
+                    `&to=${attendees}` +
+                    `&body=${notes}` +
+                    `&startdt=${formatForLink(start)}` +
+                    `&enddt=${formatForLink(end)}` +
+                    `&path=/calendar/action/compose&rru=addevent`;
 
-        // 4. Construct the Deep Link
-        const outlookUrl = `https://outlook.office.com/calendar/deeplink/compose?subject=${title}&startdt=${startStr}&enddt=${endStr}&path=/calendar/action/compose&rru=addevent`;
-
-        // 5. Open in new tab
-        window.open(outlookUrl, '_blank');
+        // Open Outlook Web in a new tab
+        window.open(url, '_blank');
     }
 </script>
 
