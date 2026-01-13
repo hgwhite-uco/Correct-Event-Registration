@@ -1,89 +1,45 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Outlook Event Scheduler</title>
-    <style>
-        :root { --primary: #0078d4; --bg: #f3f2f1; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); padding: 40px; color: #323130; }
-        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        h2 { color: var(--primary); margin-top: 0; }
-        .input-group { margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px; }
-        label { font-weight: 600; font-size: 0.9rem; }
-        input { padding: 12px; border: 1px solid #8a8886; border-radius: 4px; font-size: 1rem; }
-        button { 
-            background: var(--primary); color: white; border: none; padding: 12px; 
-            border-radius: 4px; font-weight: 600; cursor: pointer; transition: background 0.2s;
-            width: 100%; font-size: 1rem;
-        }
-        button:hover { background: #005a9e; }
-        .footer-note { font-size: 0.8rem; color: #605e5c; margin-top: 20px; text-align: center; }
-    </style>
+    <script src="https://unpkg.com/@microsoft/mgt@3/dist/bundle/mgt.loader.js"></script>
 </head>
 <body>
+    <mgt-msal2-provider client-id="YOUR_AZURE_CLIENT_ID"></mgt-msal2-provider>
+    <mgt-login></mgt-login>
 
-<div class="container">
-    <h2> Schedule to Outlook</h2>
-    <p>Enter details to generate an Outlook calendar invite file.</p>
-    
-    <div class="input-group">
-        <label>Event Name</label>
-        <input type="text" id="subject" placeholder="e.g., Project Review">
-        
-        <label>Start Date & Time</label>
-        <input type="datetime-local" id="startTime">
-        
-        <label>Duration (Minutes)</label>
-        <input type="number" id="duration" value="60">
+    <div id="event-form">
+        <input type="text" id="title" placeholder="Event Title">
+        <input type="date" id="date">
+        <input type="time" id="time">
+        <input type="number" id="duration" placeholder="Duration (mins)">
+        <button onclick="createEvent()">Create Event</button>
     </div>
 
-    <button onclick="downloadOutlookInvite()">Download Outlook File</button>
+    <script>
+        async function createEvent() {
+            const title = document.getElementById('title').value;
+            const date = document.getElementById('date').value;
+            const time = document.getElementById('time').value;
+            const duration = parseInt(document.getElementById('duration').value);
 
-    <p class="footer-note">Upload this file to GitHub Pages to share your scheduler.</p>
-</div>
+            const start = new Date(`${date}T${time}`);
+            const end = new Date(start.getTime() + duration * 60000);
 
-<script>
-    function openOutlookWeb() {
-    const subject = document.getElementById('subject').value;
-    const startInput = document.getElementById('startTime').value;
-    const duration = parseInt(document.getElementById('duration').value);
+            const event = {
+                subject: title,
+                start: { dateTime: start.toISOString(), timeZone: 'UTC' },
+                end: { dateTime: end.toISOString(), timeZone: 'UTC' }
+            };
 
-    if (!subject || !startInput) {
-        alert("Please fill in the Event Name and Start Time.");
-        return;
-    }
-
-    // 1. Format Dates specifically for Outlook Web URLs
-    // Outlook prefers: YYYY-MM-DDTHH:mm:ss
-    const startDateObj = new Date(startInput);
-    const endDateObj = new Date(startDateObj.getTime() + duration * 60000);
-
-    const formatForOutlook = (date) => {
-        return date.toISOString().split('.')[0]; // Removes the milliseconds and 'Z'
-    };
-
-    const startStr = formatForOutlook(startDateObj);
-    const endStr = formatForOutlook(endDateObj);
-
-    // 2. Construct the deep link
-    // rru=addevent triggers the 'New Event' pop-up automatically
-    const baseUrl = "https://outlook.office.com/calendar/0/deeplink/compose";
-    const params = new URLSearchParams({
-        path: "/calendar/action/compose",
-        rru: "addevent",
-        subject: subject,
-        startdt: startStr,
-        enddt: endStr,
-        body: "Scheduled via Web Scheduler"
-    });
-
-    const finalUrl = `${baseUrl}?${params.toString()}`;
-
-    // 3. Open in a new tab
-    window.open(finalUrl, '_blank');
-}
-</script>
-
+            try {
+                // MSAL provider handles the token automatically
+                await mgt.Providers.globalProvider.graph.api('/me/events').post(event);
+                alert("Event Created!");
+            } catch (err) {
+                console.error(err);
+                alert("Error creating event");
+            }
+        }
+    </script>
 </body>
 </html>
